@@ -1,0 +1,40 @@
+# Template for the custom DuckDB connector ingestion workflow.
+# Copy to duckdb_ingestion.yml and edit the connectionOptions for your DB.
+#
+# Run:
+#   set -a && . .env && set +a
+#   metadata ingest -c duckdb_ingestion.yml
+
+source:
+  type: customDatabase
+  serviceName: duckdb_remote
+  serviceConnection:
+    config:
+      type: CustomDatabase
+      sourcePythonClass: connector.duckdb_connector.DuckDBConnector
+      connectionOptions:
+        # ---- Variant A: local DuckDB file ----
+        database_name: my_database
+        database_schema_list: schema1, schema2
+        database_file_path: /path/to/my_database.duckdb
+
+        # ---- Variant B: MotherDuck (cloud) ----
+        # database_name: my_md_database
+        # database_schema_list: main, analytics
+        # database_file_path: "md:my_md_database"
+        # motherduck_token: "${MOTHERDUCK_TOKEN}"   # optional; defaults to env var
+  sourceConfig:
+    config:
+      type: DatabaseMetadata
+
+sink:
+  type: metadata-rest
+  config: {}
+
+workflowConfig:
+  loggerLevel: INFO
+  openMetadataServerConfig:
+    hostPort: http://localhost:8585/api
+    authProvider: openmetadata
+    securityConfig:
+      jwtToken: "${OM_JWT}"

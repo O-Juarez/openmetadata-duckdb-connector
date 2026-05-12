@@ -1,0 +1,38 @@
+# Template — DBT lineage workflow.
+# Copy to duckdb_dbt.yml and point the file paths at your dbt project's
+# `target/` directory. Works against either a customDatabase or Duckdb service.
+#
+# Run:
+#   set -a && . .env && set +a
+#   metadata ingest -c duckdb_dbt.yml
+#
+# Docs: https://docs.open-metadata.org/v1.12.x/connectors/ingestion/workflows/dbt
+
+source:
+  type: dbt
+  serviceName: duckdb_remote
+  sourceConfig:
+    config:
+      type: DBT
+      # Other dbtConfigType values: s3, gcs, http, azure, dbt-cloud
+      dbtConfigSource:
+        dbtConfigType: local
+        dbtCatalogFilePath: /path/to/dbt/target/catalog.json
+        dbtManifestFilePath: /path/to/dbt/target/manifest.json
+        dbtRunResultsFilePath: /path/to/dbt/target/run_results.json
+      # Optional knobs
+      # dbtUpdateDescriptions: true
+      # includeTags: true
+      # dbtClassificationName: dbtTags
+
+sink:
+  type: metadata-rest
+  config: {}
+
+workflowConfig:
+  loggerLevel: INFO
+  openMetadataServerConfig:
+    hostPort: http://localhost:8585/api
+    authProvider: openmetadata
+    securityConfig:
+      jwtToken: "${OM_JWT}"
