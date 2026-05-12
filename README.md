@@ -71,6 +71,52 @@ To run the DuckDB Custom Connector, the Python class will be `connector.duckdb_c
 to set the following Connection Options:
 - `database_name`: The name of DuckDB database
 - `database_schema_list`: List database schema splits by comma, eg. `dimensions, facts, marts`
-- `database_file_path`: The path to DuckDB database local file
+- `database_file_path`: Path to a local DuckDB file, or a MotherDuck URI like `md:my_db`
+- `motherduck_token` (optional): MotherDuck access token. If omitted, the `motherduck_token` env var is used.
 
-You can find an example metadata ingestion configuration in the `duckdb_ingetion.yml` file.
+Each workflow ships as a `*.example.yml` template (placeholders, safe to commit) and a `*.yml` (your active, runnable config — typically gitignored when it has secrets):
+
+| Template | Active config | Purpose |
+|---|---|---|
+| [duckdb_ingestion.example.yml](duckdb_ingestion.example.yml) | [duckdb_ingestion.yml](duckdb_ingestion.yml) | Custom-connector metadata ingestion (local file or MotherDuck) |
+| [duckdb_metadata.example.yml](duckdb_metadata.example.yml) | [duckdb_metadata.yml](duckdb_metadata.yml) | Native OM Duckdb metadata ingestion (required for profiler) |
+| [duckdb_profiler.example.yml](duckdb_profiler.example.yml) | [duckdb_profiler.yml](duckdb_profiler.yml) | External profiler workflow (sampling, stats) |
+| [duckdb_dbt.example.yml](duckdb_dbt.example.yml) | [duckdb_dbt.yml](duckdb_dbt.yml) | DBT manifest → lineage edges |
+
+Copy a template to its `.yml` form, fill in the placeholders, then run `metadata ingest -c <file>` (or `metadata profile -c …` for the profiler).
+
+---
+
+## Testing
+
+The connector ships with a [pytest](https://pytest.org) suite covering type normalization, config validation, file-existence checks, the `_iter` order, MotherDuck detection and token plumbing, and the `create()` classmethod.
+
+### With [uv](https://docs.astral.sh/uv/) (recommended)
+
+```bash
+cd duckdb-connector
+uv sync                  # creates .venv with project + dev deps
+uv run pytest -v
+```
+
+### With plain pip
+
+```bash
+cd duckdb-connector
+python -m venv .venv && source .venv/bin/activate
+pip install -e . pytest
+pytest -v
+```
+
+### What the tests cover
+
+- `tests/test_normalize_type.py` — pure-function mapping of DuckDB types to OpenMetadata types.
+- `tests/test_duckdb_connector.py`:
+  - `TestInit` — connection-option validation (missing `database_name`, `database_schema_list`, `database_file_path`; whitespace/empty entries stripped).
+  - `TestPrepare` — raises on missing local file; succeeds when present; skips file check for `md:` URIs.
+  - `TestTestConnection` — opens the file and runs `SELECT 1`.
+  - `TestIter` — yields service → database → schemas → tables in order; missing schemas surface as `Either(left=...)` errors instead of crashing.
+  - `TestCreate` — instantiates from a real `WorkflowSource` config dict.
+  - `TestMotherDuck` — `md:` prefix detection, token passthrough to `duckdb.connect`, env-var fallback.
+
+Tests using the OpenMetadata SDK auto-skip if `openmetadata-ingestion` isn't installed (`pytest.importorskip`), so the pure-function tests still run in a minimal environment.
