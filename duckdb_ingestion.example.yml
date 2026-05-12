@@ -1,6 +1,9 @@
 # Template for the custom DuckDB connector ingestion workflow.
 # Copy to duckdb_ingestion.yml and edit the connectionOptions for your DB.
 #
+# For MotherDuck (md:* paths), set the MOTHERDUCK_TOKEN env var before
+# running — DuckDB reads it natively; the token is never put in this YAML.
+#
 # Run:
 #   set -a && . .env && set +a
 #   metadata ingest -c duckdb_ingestion.yml
@@ -19,10 +22,10 @@ source:
         database_file_path: /path/to/my_database.duckdb
 
         # ---- Variant B: MotherDuck (cloud) ----
+        # Requires MOTHERDUCK_TOKEN exported in the environment.
         # database_name: my_md_database
         # database_schema_list: main, analytics
         # database_file_path: "md:my_md_database"
-        # motherduck_token: "${MOTHERDUCK_TOKEN}"   # optional; defaults to env var
   sourceConfig:
     config:
       type: DatabaseMetadata

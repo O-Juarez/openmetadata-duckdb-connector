@@ -107,11 +107,6 @@ class DuckDBConnector(Source):
                 "Missing database_file_path connection option"
             )
 
-        # Optional MotherDuck token. Falls back to the `motherduck_token` env
-        # var, which DuckDB itself reads. Only used when database_file_path
-        # is a MotherDuck URI ("md:" prefix).
-        self.motherduck_token: Optional[str] = options.get("motherduck_token")
-
     @classmethod
     def create(
         cls,
@@ -132,10 +127,11 @@ class DuckDBConnector(Source):
         return self.database_file_path.startswith("md:")
 
     def _connect(self):
-        """Open a read-only DuckDB connection (local file or MotherDuck)."""
-        if self.is_motherduck:
-            config = {"motherduck_token": self.motherduck_token} if self.motherduck_token else {}
-            return duckdb.connect(database=self.database_file_path, read_only=True, config=config)
+        """Open a read-only DuckDB connection (local file or MotherDuck).
+
+        For MotherDuck URIs, the token is read from the `motherduck_token`
+        environment variable, which DuckDB picks up natively.
+        """
         return duckdb.connect(database=self.database_file_path, read_only=True)
 
     def prepare(self):

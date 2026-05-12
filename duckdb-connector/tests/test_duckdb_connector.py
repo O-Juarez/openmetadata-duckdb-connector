@@ -24,7 +24,6 @@ def _make_config_mock(options: dict) -> MagicMock:
 def _build_connector(
     db_path: Path | str,
     schemas: str = "sales,marketing",
-    motherduck_token: str | None = None,
 ) -> DuckDBConnector:
     """Build a connector by bypassing __init__ — useful for testing yield_* in isolation."""
     c = object.__new__(DuckDBConnector)
@@ -34,7 +33,6 @@ def _build_connector(
     c.database_name = "test_db"
     c.database_schema_list = [s.strip() for s in schemas.split(",") if s.strip()]
     c.database_file_path = str(db_path)
-    c.motherduck_token = motherduck_token
     return c
 
 
@@ -171,29 +169,13 @@ class TestMotherDuck:
         c = _build_connector("md:nonexistent_db")
         c.prepare()  # must not raise even though no local file exists
 
-    def test_connect_passes_token_for_motherduck(self, monkeypatch):
+    def test_connect_motherduck_uri_passes_through(self, monkeypatch):
         captured = {}
 
-        def fake_connect(database, read_only, config=None):
+        def fake_connect(database, read_only, **kwargs):
             captured["database"] = database
             captured["read_only"] = read_only
-            captured["config"] = config
-            return MagicMock()
-
-        monkeypatch.setattr("connector.duckdb_connector.duckdb.connect", fake_connect)
-
-        c = _build_connector("md:my_db", motherduck_token="tok_abc")
-        c._connect()
-
-        assert captured["database"] == "md:my_db"
-        assert captured["read_only"] is True
-        assert captured["config"] == {"motherduck_token": "tok_abc"}
-
-    def test_connect_omits_token_when_unset_for_motherduck(self, monkeypatch):
-        captured = {}
-
-        def fake_connect(database, read_only, config=None):
-            captured["config"] = config
+            captured["kwargs"] = kwargs
             return MagicMock()
 
         monkeypatch.setattr("connector.duckdb_connector.duckdb.connect", fake_connect)
@@ -201,10 +183,13 @@ class TestMotherDuck:
         c = _build_connector("md:my_db")
         c._connect()
 
-        # No token set -> empty config dict, lets DuckDB pick up motherduck_token env var
-        assert captured["config"] == {}
+        # The token is read by DuckDB itself from the motherduck_token env var;
+        # the connector just forwards the URI as-is.
+        assert captured["database"] == "md:my_db"
+        assert captured["read_only"] is True
+        assert captured["kwargs"] == {}
 
-    def test_connect_local_does_not_pass_config(self, duckdb_file: Path, monkeypatch):
+    def test_connect_local_path_passes_through(self, duckdb_file: Path, monkeypatch):
         captured = {}
 
         def fake_connect(database, read_only, **kwargs):
@@ -217,5 +202,5 @@ class TestMotherDuck:
         c = _build_connector(duckdb_file)
         c._connect()
 
-        # Local path should not pass a config kwarg
-        assert "config" not in captured["kwargs"]
+        assert captured["database"] == str(duckdb_file)
+        assert captured["kwargs"] == {}

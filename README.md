@@ -72,7 +72,8 @@ to set the following Connection Options:
 - `database_name`: The name of DuckDB database
 - `database_schema_list`: List database schema splits by comma, eg. `dimensions, facts, marts`
 - `database_file_path`: Path to a local DuckDB file, or a MotherDuck URI like `md:my_db`
-- `motherduck_token` (optional): MotherDuck access token. If omitted, the `motherduck_token` env var is used.
+
+For MotherDuck, export the `MOTHERDUCK_TOKEN` env var before running ingestion — DuckDB reads it natively, so the token never lives in the YAML. The `CustomDatabaseConnection` schema has no encrypted-secret fields, so anything placed in `connectionOptions` would be stored in plaintext.
 
 Each workflow ships as a `*.example.yml` template (placeholders, safe to commit) and a `*.yml` (your active, runnable config — typically gitignored when it has secrets):
 

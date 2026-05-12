@@ -75,7 +75,6 @@ def _is_string(t: str) -> bool:
 class ProfilerConfig:
     database_name: str
     database_url: str
-    motherduck_token: Optional[str]
     om_host_port: str
     om_jwt: str
     service_name: str
@@ -100,7 +99,6 @@ class ProfilerConfig:
         return cls(
             database_name=cfg["databaseName"],
             database_url=cfg["databaseUrl"],
-            motherduck_token=cfg.get("motherduckToken") or os.environ.get("MOTHERDUCK_TOKEN"),
             om_host_port=wf_cfg["hostPort"],
             om_jwt=wf_cfg["securityConfig"]["jwtToken"],
             service_name=src["serviceName"],
@@ -124,9 +122,7 @@ def _matches_any(value: str, patterns: Optional[Sequence[str]]) -> bool:
 
 
 def _build_duckdb_conn(config: ProfilerConfig) -> duckdb.DuckDBPyConnection:
-    if config.database_url.startswith("md:"):
-        opts = {"motherduck_token": config.motherduck_token} if config.motherduck_token else {}
-        return duckdb.connect(database=config.database_url, read_only=True, config=opts)
+    # For MotherDuck URIs, DuckDB reads the token from the motherduck_token env var.
     return duckdb.connect(database=config.database_url, read_only=True)
 
 
