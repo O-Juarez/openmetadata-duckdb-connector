@@ -17,8 +17,8 @@ volumes:
   es-data:
 services:
   mysql:
-    container_name: openmetadata_mysql
-    image: docker.getcollate.io/openmetadata/db:1.1.2
+    container_name: omduckdb_mysql
+    image: openmetadata/db:1.12.6
     command: "--sort_buffer_size=10M"
     restart: always
     environment:
@@ -38,7 +38,7 @@ services:
       retries: 10
 
   elasticsearch:
-    container_name: openmetadata_elasticsearch
+    container_name: omduckdb_elasticsearch
     image: docker.elastic.co/elasticsearch/elasticsearch:7.16.3
     environment:
       - discovery.type=single-node
@@ -52,9 +52,9 @@ services:
       - /data/openmetadata/es-data:/var/lib/elasticsearch/data # fix AccessDeniedException[/usr/share/elasticsearch/
 
   execute-migrate-all:
-    container_name: execute_migrate_all
-    image: docker.getcollate.io/openmetadata/server:1.1.2
-    command: "./bootstrap/bootstrap_storage.sh migrate-all"
+    container_name: omduckdb_migrate
+    image: openmetadata/server:1.12.6
+    command: "./bootstrap/openmetadata-ops.sh migrate"
     environment:
       OPENMETADATA_CLUSTER_NAME: ${OPENMETADATA_CLUSTER_NAME:-openmetadata}
       SERVER_PORT: ${SERVER_PORT:-8585}
@@ -137,7 +137,7 @@ services:
       FERNET_KEY: ${FERNET_KEY:-jJ/9sz0g0OHxsfxOoSfdFdmk3ysNmPRnH3TUAbz3IHA=}
 
       #secretsManagerConfiguration
-      SECRET_MANAGER: ${SECRET_MANAGER:-noop}
+      SECRET_MANAGER: ${SECRET_MANAGER:-db}
       #parameters:
       OM_SM_REGION: ${OM_SM_REGION:-""}
       OM_SM_ACCESS_KEY_ID: ${OM_SM_ACCESS_KEY_ID:-""}
@@ -210,9 +210,9 @@ services:
       - app_net
 
   openmetadata-server:
-    container_name: openmetadata_server
+    container_name: omduckdb_server
     restart: always
-    image: docker.getcollate.io/openmetadata/server:1.1.2
+    image: openmetadata/server:1.12.6
     environment:
       OPENMETADATA_CLUSTER_NAME: ${OPENMETADATA_CLUSTER_NAME:-openmetadata}
       SERVER_PORT: ${SERVER_PORT:-8585}
@@ -292,7 +292,7 @@ services:
       FERNET_KEY: ${FERNET_KEY:-jJ/9sz0g0OHxsfxOoSfdFdmk3ysNmPRnH3TUAbz3IHA=}
 
       #secretsManagerConfiguration
-      SECRET_MANAGER: ${SECRET_MANAGER:-noop}
+      SECRET_MANAGER: ${SECRET_MANAGER:-db}
       #parameters:
       OM_SM_REGION: ${OM_SM_REGION:-""}
       OM_SM_ACCESS_KEY_ID: ${OM_SM_ACCESS_KEY_ID:-""}
@@ -370,7 +370,7 @@ services:
       test: [ "CMD", "wget", "-q", "--spider",  "http://localhost:8586/healthcheck" ]
 
   ingestion:
-    container_name: openmetadata_ingestion
+    container_name: omduckdb_ingestion
     build:
       context: ../
       dockerfile: docker/Dockerfile
@@ -401,9 +401,9 @@ services:
     networks:
       - app_net
     volumes:
-      - /data/openmetadata/ingestion-volume-dag-airflow:/opt/airflow/dag_generated_configs
-      - /data/openmetadata/ingestion-volume-dags:/opt/airflow/dags
-      - /data/openmetadata/ingestion-volume-tmp:/tmp
+      - ingestion-volume-dag-airflow:/opt/airflow/dag_generated_configs
+      - ingestion-volume-dags:/opt/airflow/dags
+      - ingestion-volume-tmp:/tmp
 
 
 networks:
