@@ -1,3 +1,21 @@
 .idea
+.env
+
+# Build artifacts
 duckdb-connector/build
 duckdb-connector/duckdb_connector.egg-info
+
+# Python caches & virtualenvs (recursive)
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+
+# Active workflow configs (templates live in *.example.yml)
+duckdb_ingestion.yml
+duckdb_metadata.yml
+duckdb_profiler.yml
+duckdb_dbt.yml
+
+# dbt artifacts
+dbt_manifest/
